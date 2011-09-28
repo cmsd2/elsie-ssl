@@ -76,15 +76,9 @@ testa.pem
 testb.pem
 testca.pem
 
-these can be used with the elsie.ssl like so:
-
-java -cp ... org.elsie.ssl.SigChecker testca.pem a.jar ... a-signed-b.jar
-
-the first arg to the SigChecker main class is the file containing 1 or more certificates.
-
-the remaining args are the jars to check.
-
-expected results matrix:
+tests can be run from the tests dir by executing
+ant tests
+expected results matrix from junit tests:
 
 ----------
 testa:
