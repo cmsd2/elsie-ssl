@@ -16,7 +16,14 @@
 		<javac srcdir="a/src" destdir="a/build/classes"/>
 		<javac srcdir="b/src" destdir="b/build/classes"/>
 		<javac srcdir="untrusted/src" destdir="untrusted/build/classes"/>
-		<javac srcdir="src" destdir="build/classes"/>
+		<javac srcdir="src" destdir="build/classes">
+                	<classpath>
+				<pathelement path="${classpath}"/>
+				<pathelement path="../bin"/>
+				<pathelement location="lib/junit-3.8.2.jar"/>
+			</classpath>
+		</javac>
+
 	</target>
 
 	<target name="jar" depends="compile">
@@ -73,10 +80,12 @@
 	</target>
 
 	<target name="test" depends="jar">
-		<junit printsummary="yes">
+		<junit printsummary="on">
 			<sysproperty key="build.dir" value="build"/>
+			<sysproperty key="keystore" value="testkeystore"/>
 			<classpath>
 				<pathelement path="${classpath}"/>
+				<pathelement path="../bin"/>
 				<pathelement location="lib/junit-3.8.2.jar"/>
 			</classpath>
 			<formatter type="plain"/>
