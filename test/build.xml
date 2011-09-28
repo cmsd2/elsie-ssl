@@ -1,0 +1,90 @@
+<project>
+
+	<target name="clean">
+		<delete dir="build"/>
+		<delete dir="a/build"/>
+		<delete dir="b/build"/>
+		<delete dir="untrusted/build"/>
+	</target>
+
+	<target name="compile">
+		<mkdir dir="a/build/classes"/>
+		<mkdir dir="b/build/classes"/>
+		<mkdir dir="untrusted/build/classes"/>
+		<mkdir dir="build/classes"/>
+
+		<javac srcdir="a/src" destdir="a/build/classes"/>
+		<javac srcdir="b/src" destdir="b/build/classes"/>
+		<javac srcdir="untrusted/src" destdir="untrusted/build/classes"/>
+		<javac srcdir="src" destdir="build/classes"/>
+	</target>
+
+	<target name="jar" depends="compile">
+		<mkdir dir="build/jar"/>
+
+		<jar destfile="build/jar/a.jar" basedir="a/build/classes"/>
+
+		<jar destfile="build/jar/a-signed-a.jar" basedir="a/build/classes"/>
+		<signjar jar="build/jar/a-signed-a.jar" keystore="testkeystore" alias="testa" storepass="password"/>
+
+		<jar destfile="build/jar/a-signed-b.jar" basedir="a/build/classes"/>
+		<signjar jar="build/jar/a-signed-b.jar" keystore="testkeystore" alias="testb" storepass="password"/>
+
+		<jar destfile="build/jar/a-signed-a-and-b.jar" basedir="a/build/classes"/>
+		<signjar jar="build/jar/a-signed-a-and-b.jar" keystore="testkeystore" alias="testa" storepass="password"/>
+		<signjar jar="build/jar/a-signed-a-and-b.jar" keystore="testkeystore" alias="testb" storepass="password"/>
+
+		<jar destfile="build/jar/a-signed-a-and-b-then-modified.jar" basedir="a/build/classes"/>
+		<signjar jar="build/jar/a-signed-a-and-b-then-modified.jar"
+			 keystore="testkeystore"
+			 alias="testa"
+			 storepass="password"/>
+		<signjar jar="build/jar/a-signed-a-and-b-then-modified.jar"
+			 keystore="testkeystore"
+			 alias="testb"
+			 storepass="password"/>
+		<jar destfile="build/jar/a-signed-a-and-b-then-modified.jar" update="true" basedir="untrusted/build/classes"/>
+
+		<jar destfile="build/jar/a-signed-a-then-modified-then-signed-b.jar" basedir="a/build/classes"/>
+		<signjar jar="build/jar/a-signed-a-then-modified-then-signed-b.jar"
+			 keystore="testkeystore"
+			 alias="testa"
+			 storepass="password"/>
+		<signjar jar="build/jar/a-signed-a-then-modified-then-signed-b.jar"
+			 keystore="testkeystore"
+			 alias="testb"
+			 storepass="password"/>
+
+		<jar destfile="build/jar/a-signed-a-and-b-then-extended-then-signed-b.jar" basedir="a/build/classes"/>
+		<signjar jar="build/jar/a-signed-a-and-b-then-extended-then-signed-b.jar"
+			 keystore="testkeystore"
+			 alias="testa"
+			 storepass="password"/>
+		<signjar jar="build/jar/a-signed-a-and-b-then-extended-then-signed-b.jar"
+			 keystore="testkeystore"
+			 alias="testb"
+			 storepass="password"/>
+		<jar destfile="build/jar/a-signed-a-and-b-then-extended-then-signed-b.jar" update="true" basedir="b/build/classes"/>
+		<signjar jar="build/jar/a-signed-a-and-b-then-extended-then-signed-b.jar"
+			 keystore="testkeystore"
+			 alias="testb"
+			 storepass="password"/>
+
+	</target>
+
+	<target name="test" depends="jar">
+		<junit printsummary="yes">
+			<sysproperty key="build.dir" value="build"/>
+			<classpath>
+				<pathelement path="${classpath}"/>
+				<pathelement location="lib/junit-3.8.2.jar"/>
+			</classpath>
+			<formatter type="plain"/>
+			<batchtest>
+				<fileset dir="src">
+					<include name="**/*Test.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>
+</project>

@@ -1,0 +1,7 @@
+<project>
+	<target name="clean">
+	</target>
+
+	<target name="compile">
+	</target>
+</project>

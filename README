@@ -1,0 +1,128 @@
+elsie.ssl is a package to help manage and use certificates and keys.
+
+current features:
+extract certs and keys from a jks keystore.
+verify a jar is signed by a key that is in the chain of trust
+TODO: implement a CRL or OCSP check.
+
+required tools to reproduce the files in test/
+java's keytool
+openssl
+
+all the keys and certs are stored in keystore.
+the password to the keystore and all the test keys is 'password'.
+keytool lets you see the certs in a keystore.
+to see the private keys, use the provided class:
+java -cp bin uk.org.elsie.ssl.KeyStoreTool
+
+the certificates and keys we'll need:
+testca: testca key and cert.
+testa: self signed key and cert
+testb: cert signed by testca CA key
+
+testca:
+create a self-signed cert using keytool.
+export private key using the KeyStoreTool class as follows:
+java -cp bin uk.org.elsie.ssl.KeyStoreTool -keystore test/testkeystore -password password -key testa -out testca.key
+saves it as testca.key
+export testca cert using keytool -exportcert, saving as testca.pem (or use KeyStoreTool)
+
+testa:
+create a self-signed cert using keytool
+
+testb:
+create a self-signed cert using keytool
+generate a certificate signing request using keytool, saving as testb.csr
+
+sign testb's csr with testca's key:
+openssl's default ca config normally looks like this:
+dir            = ./demoCA              # top dir
+database       = $dir/index.txt        # index file.
+new_certs_dir  = $dir/newcerts         # new certs dir
+certificate    = $dir/cacert.pem       # The CA cert
+serial         = $dir/serial           # serial no file
+private_key    = $dir/private/cakey.pem
+we care about dir, database, new_certs_dir and serial.
+we'll supply a command line option for the key and cert
+
+so create dir demoCA in current working dir
+create demoCA/newcerts
+touch demoCA/index.txt
+echo "01" > demoCA/serial
+openssl ca -keyfile testca.key -cert testca.pem -days 3650 -in testb.csr  -out testb.pem
+
+reimport signed testb cert into keystore:
+trim the guff at the top of testb.pem: keytool chokes on the comments that openssl inserts before the start of the ascii armoured key block. so delete everything before -----BEGIN CERTIFICATE-----
+keytool -importcert -alias testb -file testb.pem -keystore keystore
+this merges the cert part with keystore's private key part.
+
+now use the certs to sign various combinations of jars,
+which we then run through the program to see what verifies and what doesn't.
+
+example command to sign a jar with testb cert, saving the signature as TESTB.SF
+jarsigner -keystore keystore -sigfile testb jarfile.jar testb
+
+here's a list of jars used for testing:
+a.jar
+a-signed-a.jar
+a-signed-b.jar
+a-signed-a-and-b.jar
+a-signed-a-and-b-then-modified.jar
+a-signed-a-then-modified-then-signed-b.jar
+a-signed-a-then-extended-then-signed-b.jar
+
+and here's a list of certificates exported from the keystore:
+testa.pem
+testb.pem
+testca.pem
+
+these can be used with the elsie.ssl like so:
+
+java -cp ... org.elsie.ssl.SigChecker testca.pem a.jar ... a-signed-b.jar
+
+the first arg to the SigChecker main class is the file containing 1 or more certificates.
+
+the remaining args are the jars to check.
+
+expected results matrix:
+
+----------
+testa:
+pass:
+a-signed-a.jar
+a-signed-a-and-b.jar
+
+fail:
+a.jar
+a-signed-b.jar
+a-signed-a-and-b-then-modified.jar
+a-signed-a-then-modified-then-signed-b.jar
+a-signed-a-then-extended-then-signed-b.jar
+----------
+
+testb:
+pass:
+a-signed-b.jar
+a-signed-a-and-b.jar
+a-signed-a-then-extended-then-signed-b.jar
+
+fail:
+a.jar
+a-signed-a.jar
+a-signed-a-and-b-then-modified.jar
+a-signed-a-then-modified-then-signed-b.jar
+----------
+
+testca:
+pass:
+a-signed-a.jar
+a-signed-b.jar
+a-signed-a-and-b.jar
+a-signed-a-then-extended-then-signed-b.jar
+
+fail:
+a.jar
+a-signed-a-and-b-then-modified.jar
+a-signed-a-then-modified-then-signed-b.jar
+----------
+
